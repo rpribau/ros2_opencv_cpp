@@ -11,7 +11,7 @@ Esta prueba es el uso de dos nodos de ROS2, uno que se encarga de correr la cama
 
 INTENTE muchas formas de correrlo directamente desde el primer nodo, solo que al correr me marcaba constantemente errores de memoria (basicamente decia que necesitaba casi 10 TB de memoria lol). 
 
-Como use un codigo ya hecho con un nodo para la camara de mi lap y no me deja subir la carpeta aqui dejo el recirso que use: https://gitlab.com/boldhearts/ros2_v4l2_camera
+Como use un codigo ya hecho con un nodo para la camara de mi lap y no me deja subir la carpeta aqui dejo el recurso que use: https://gitlab.com/boldhearts/ros2_v4l2_camera
 
 **Cosas a considerar a un futuro**
 
