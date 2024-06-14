@@ -1,0 +1,2 @@
+source;share/people_detection/environment/ament_prefix_path.sh
+source;share/people_detection/environment/path.sh
