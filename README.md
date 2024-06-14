@@ -1,6 +1,6 @@
 # ros2_opencv_cpp
 
-**Este repo son meras pruebas que voy haciendo de tiempo en tiempo para el SDV para [@Vanttec](https://github.com/vanttec). El codigo no puede ser el mismo que tenia hace un o dos meses, por lo que si quieres ver versiones anteriores buscalas por los commits.**
+**Este repo son meras pruebas que voy haciendo de tiempo en tiempo para el SDV para [@Vanttec](https://github.com/vanttec). El codigo no va ser el mismo que tenia hace uno o dos meses, por lo que si quieres ver versiones anteriores buscalas por los commits.**
 
 
 ## Updates
