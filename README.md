@@ -11,6 +11,8 @@ Ha pasado un ratote eh... pues si, realmente ha pasado un ratote y en ese ratote
 
 - Nodo funcionar bien, camara enciende bien uga ugh, editar codigo para quitar la logica de YOLO para que pueda ser usado en otros lados y listo.
 
+**NOTA**, falta agregar una libreria que estoy terminando de desarrollar con TensorRT que me permita correrlo con la logica que tenia Frida de las distancias del objeto con respecto a la camara.
+
 14/06/2024
 
 Esta prueba es el uso de dos nodos de ROS2, uno que se encarga de correr la camara con un publisher **image_raw** y el otro nodo solo tiene un subscriber que toma el video para correr el modelo ```yolov8-pose.onnx``` en otro nodo por aparte.
