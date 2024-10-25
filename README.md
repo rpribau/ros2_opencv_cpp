@@ -5,6 +5,12 @@
 
 ## Updates
 
+25/10/2024
+
+Ha pasado un ratote eh... pues si, realmente ha pasado un ratote y en ese ratote volvi a hacer todo lo que tenia anteriormente pero ahora con OpenCV con CUDA y TensorRT. La cosa es que corre en mi desktop con CUDA 11 y TensorRT 8 relativamente bien, solo que ahora tengo que agregar los cambios de la multisense. Ademas de que tuve que rehacer el nodo de Frida, el cual lo deje en Python porque la neta mi pensamiento fue el siguiente:
+
+- Nodo funcionar bien, camara enciende bien uga ugh, editar codigo para quitar la logica de YOLO para que pueda ser usado en otros lados y listo.
+
 14/06/2024
 
 Esta prueba es el uso de dos nodos de ROS2, uno que se encarga de correr la camara con un publisher **image_raw** y el otro nodo solo tiene un subscriber que toma el video para correr el modelo ```yolov8-pose.onnx``` en otro nodo por aparte.
