@@ -7,22 +7,19 @@ endif()
 
 # Set CUDA early so OpenCV can find it
 # Set the version of CUDA to use
-set(CUDA_VERSION "12.3")
+set(CUDA_VERSION "11.8")
 # # Use the correct version of CUDA
 set(CUDA_TOOLKIT_ROOT_DIR "/usr/local/cuda-${CUDA_VERSION}")
 # # Set CMAKE_CUDA_COMPILER to the correct version of nvcc
 set(CMAKE_CUDA_COMPILER "/usr/local/cuda-${CUDA_VERSION}/bin/nvcc")
 
-set(TensorRT_DIR /home/rob/TensorRT-10.3.0.26.Linux.x86_64-gnu.cuda-11.8)
-
 # Find dependencies
-
 find_package(ament_cmake_auto REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(cv_bridge REQUIRED)
+find_package(image_transport REQUIRED)
 find_package(yolov8_interfaces REQUIRED)
-find_package(OpenCV REQUIRED)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -59,7 +56,7 @@ target_link_libraries(YoloV8_TRT PUBLIC tensorrt_cpp_api ${OpenCV_LIBS})
 target_include_directories(YoloV8_TRT PUBLIC libs/tensorrt-cpp-api/src)
 
 add_executable(ros_segmentation src/ros_segmentation.cpp)
-ament_target_dependencies(ros_segmentation rclcpp sensor_msgs cv_bridge yolov8_interfaces)
+ament_target_dependencies(ros_segmentation rclcpp sensor_msgs cv_bridge image_transport  yolov8_interfaces)
 target_link_libraries(ros_segmentation YoloV8_TRT)
 
 #
