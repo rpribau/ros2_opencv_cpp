@@ -8,6 +8,17 @@ inline bool doesFileExist(const std::string &name) {
     return f.good();
 }
 
+// Constantes para estimación de distancia
+static constexpr float AVERAGE_PERSON_WIDTH = 0.5f;  // metros (ancho promedio de una persona)
+static constexpr float CALIBRATION_DISTANCE = 2.2f;  // metros (distancia usada para calibración)
+static constexpr float CALIBRATION_WIDTH_PIXELS = 150.0f;  // píxeles (ajustar según calibración)
+static constexpr float CAMERA_FOCAL_LENGTH = (CALIBRATION_WIDTH_PIXELS * CALIBRATION_DISTANCE) / AVERAGE_PERSON_WIDTH;
+
+// Nuevas constantes para estimación basada en hombros
+static constexpr float AVERAGE_SHOULDER_WIDTH = 0.4f;  // metros (ancho promedio de hombros humanos)
+static constexpr float CALIBRATION_SHOULDER_WIDTH_PIXELS = 100.0f;  // píxeles (ajustar según calibración)
+static constexpr float CAMERA_FOCAL_LENGTH_SHOULDERS = (CALIBRATION_SHOULDER_WIDTH_PIXELS * CALIBRATION_DISTANCE) / AVERAGE_SHOULDER_WIDTH;
+
 struct Object {
     // The object class.
     int label{};
@@ -19,6 +30,8 @@ struct Object {
     cv::Mat boxMask;
     // Pose estimation key points
     std::vector<float> kps{};
+    // Estimated distance in meters
+    float distance{};
 };
 
 // Config the behavior of the YoloV8 detector.
@@ -44,7 +57,18 @@ struct YoloV8Config {
     float kpsThreshold = 0.5f;
     // Class thresholds (default are COCO classes)
     std::vector<std::string> classNames = {
-        "person"};
+        "person",         "bicycle",    "car",           "motorcycle",    "airplane",     "bus",           "train",
+        "truck",          "boat",       "traffic light", "fire hydrant",  "stop sign",    "parking meter", "bench",
+        "bird",           "cat",        "dog",           "horse",         "sheep",        "cow",           "elephant",
+        "bear",           "zebra",      "giraffe",       "backpack",      "umbrella",     "handbag",       "tie",
+        "suitcase",       "frisbee",    "skis",          "snowboard",     "sports ball",  "kite",          "baseball bat",
+        "baseball glove", "skateboard", "surfboard",     "tennis racket", "bottle",       "wine glass",    "cup",
+        "fork",           "knife",      "spoon",         "bowl",          "banana",       "apple",         "sandwich",
+        "orange",         "broccoli",   "carrot",        "hot dog",       "pizza",        "donut",         "cake",
+        "chair",           "couch",      "potted plant",  "bed",           "dining table", "toilet",        "tv",
+        "laptop",         "mouse",      "remote",        "keyboard",      "cell phone",   "microwave",     "oven",
+        "toaster",        "sink",       "refrigerator",  "book",          "clock",        "vase",          "scissors",
+        "teddy bear",     "hair drier", "toothbrush"};
 };
 
 class YoloV8 {
@@ -60,6 +84,9 @@ public:
     void drawObjectLabels(cv::Mat &image, const std::vector<Object> &objects, unsigned int scale = 2);
 
 private:
+    // Método modificado para incluir keypoints
+    float estimateDistance(const cv::Rect_<float> &bbox, const std::vector<float> &keypoints);
+    
     // Preprocess the input
     std::vector<std::vector<cv::cuda::GpuMat>> preprocess(const cv::cuda::GpuMat &gpuImg);
 
@@ -75,7 +102,6 @@ private:
     std::unique_ptr<Engine<float>> m_trtEngine = nullptr;
 
     // Used for image preprocessing
-    // YoloV8 model expects values between [0.f, 1.f] so we use the following params
     const std::array<float, 3> SUB_VALS{0.f, 0.f, 0.f};
     const std::array<float, 3> DIV_VALS{1.f, 1.f, 1.f};
     const bool NORMALIZE = true;
@@ -198,3 +224,4 @@ private:
         {255, 128, 0},  {255, 128, 0},  {255, 128, 0},  {255, 128, 0},  {255, 128, 0},  {0, 255, 0},    {0, 255, 0},
         {0, 255, 0},    {0, 255, 0},    {0, 255, 0},    {0, 255, 0},    {0, 255, 0}};
 };
+

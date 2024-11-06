@@ -56,28 +56,62 @@ public:
 
 private:
     void image_callback(const sensor_msgs::msg::Image::SharedPtr msg)
-    {
-        try {
-            // Convert ROS Image message to OpenCV image
-            cv_bridge::CvImagePtr cv_ptr = cv_bridge::toCvCopy(msg, "bgr8");
-            cv::Mat img = cv_ptr->image;
+{
+    try {
+        // Log input image dimensions
+        RCLCPP_DEBUG(this->get_logger(), "Received image with dimensions: %dx%d", 
+                     msg->width, msg->height);
 
-            if (img.empty()) {
-                RCLCPP_ERROR(this->get_logger(), "Received empty image");
+        // Convert ROS Image message to OpenCV image
+        cv_bridge::CvImagePtr cv_ptr = cv_bridge::toCvCopy(msg, "bgr8");
+        cv::Mat img = cv_ptr->image;
+
+        if (img.empty()) {
+            RCLCPP_ERROR(this->get_logger(), "Received empty image");
+            return;
+        }
+
+        // Log original image dimensions
+        RCLCPP_DEBUG(this->get_logger(), "OpenCV image dimensions: %dx%d", 
+                     img.cols, img.rows);
+
+        cv::Mat resized_img;
+        if (enable_resize_) {
+            // Verify target dimensions are valid
+            if (image_width_ <= 0 || image_height_ <= 0) {
+                RCLCPP_ERROR(this->get_logger(), 
+                            "Invalid resize dimensions: %dx%d", 
+                            image_width_, image_height_);
                 return;
             }
 
-            cv::Mat resized_img;
-            if (enable_resize_) {
-                // Resize image to specified dimensions
-                cv::resize(img, resized_img, cv::Size(image_width_, image_height_), 
-                          0, 0, cv::INTER_LINEAR);
-            } else {
-                resized_img = img;
+            // Resize image to specified dimensions
+            cv::resize(img, resized_img, cv::Size(image_width_, image_height_), 
+                      0, 0, cv::INTER_LINEAR);
+            
+            // Verify resize was successful
+            if (resized_img.empty()) {
+                RCLCPP_ERROR(this->get_logger(), "Resize operation failed");
+                return;
             }
+        } else {
+            resized_img = img;
+        }
 
-            // Run inference
+        // Verify image before inference
+        if (resized_img.cols == 0 || resized_img.rows == 0) {
+            RCLCPP_ERROR(this->get_logger(), 
+                        "Invalid image dimensions before inference: %dx%d",
+                        resized_img.cols, resized_img.rows);
+            return;
+        }
+
+        // Run inference
+        try {
             const auto objects = yolo_->detectObjects(resized_img);
+            
+            // Log number of detected objects
+            RCLCPP_DEBUG(this->get_logger(), "Detected %zu objects", objects.size());
 
             // Draw the bounding boxes on the image
             yolo_->drawObjectLabels(resized_img, objects);
@@ -87,14 +121,19 @@ private:
                 cv_bridge::CvImage(msg->header, "bgr8", resized_img).toImageMsg();
             publisher_->publish(*out_msg);
 
-        } catch (const cv_bridge::Exception& e) {
-            RCLCPP_ERROR(this->get_logger(), "cv_bridge exception: %s", e.what());
-        } catch (const std::runtime_error& e) {
-            RCLCPP_ERROR(this->get_logger(), "Runtime error: %s", e.what());
         } catch (const std::exception& e) {
-            RCLCPP_ERROR(this->get_logger(), "Exception: %s", e.what());
+            RCLCPP_ERROR(this->get_logger(), "Inference error: %s", e.what());
+            return;
         }
+
+    } catch (const cv_bridge::Exception& e) {
+        RCLCPP_ERROR(this->get_logger(), "cv_bridge exception: %s", e.what());
+    } catch (const std::runtime_error& e) {
+        RCLCPP_ERROR(this->get_logger(), "Runtime error: %s", e.what());
+    } catch (const std::exception& e) {
+        RCLCPP_ERROR(this->get_logger(), "Exception: %s", e.what());
     }
+}
 
     std::unique_ptr<YoloV8> yolo_;
     rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr publisher_;
