@@ -78,14 +78,12 @@ install(TARGETS
 # Places the launch, config, and models folders in the install/yolov8/share/yolov8 directory so they can be found by the launch file
 install(DIRECTORY
   launch
-  config
   models
   DESTINATION share/${PROJECT_NAME}/
   PATTERN ".gitignore" EXCLUDE # Exclude .gitignore files from being installed
 )
 
 install(FILES
-  ../../yolov8.env
   DESTINATION share/${PROJECT_NAME}
 )
 

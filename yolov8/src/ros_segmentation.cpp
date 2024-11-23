@@ -16,8 +16,8 @@ public:
     {
         // Declare parameters
         this->declare_parameter<std::string>("model_path", "");
-        this->declare_parameter<std::string>("camera_topic", "/camera/image_raw");
-        this->declare_parameter<int>("image_width", 640);
+        this->declare_parameter<std::string>("camera_topic", "/multisense/left/image_color");
+        this->declare_parameter<int>("image_width", 720);
         this->declare_parameter<int>("image_height", 480);
         this->declare_parameter<bool>("enable_resize", true);
         
@@ -39,14 +39,22 @@ public:
             throw;
         }
 
-        // Create publisher for the processed image
-        publisher_ = this->create_publisher<sensor_msgs::msg::Image>
-            ("/yolov8/detected_objects", 10);
+        // Configure QoS for sensor data
+        // En el constructor
+	auto sensor_qos = rclcpp::QoS(rclcpp::SensorDataQoS());
+	sensor_qos.reliability(RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT);
+	sensor_qos.durability(RMW_QOS_POLICY_DURABILITY_VOLATILE);
+	sensor_qos.history(RMW_QOS_POLICY_HISTORY_KEEP_LAST);
+	sensor_qos.keep_last(1); // Solo mantener el último mensaje
 
-        // Create subscription with a larger queue size
+        // Create publisher for the processed image with sensor QoS
+        publisher_ = this->create_publisher<sensor_msgs::msg::Image>
+            ("/yolov8/detected_objects", sensor_qos);
+
+        // Create subscription with sensor QoS
         subscription_ = this->create_subscription<sensor_msgs::msg::Image>(
             camera_topic, 
-            10,
+            sensor_qos,
             std::bind(&YoloV8Node::image_callback, this, std::placeholders::_1));
 
         RCLCPP_INFO(this->get_logger(), 
@@ -56,84 +64,84 @@ public:
 
 private:
     void image_callback(const sensor_msgs::msg::Image::SharedPtr msg)
-{
-    try {
-        // Log input image dimensions
-        RCLCPP_DEBUG(this->get_logger(), "Received image with dimensions: %dx%d", 
-                     msg->width, msg->height);
-
-        // Convert ROS Image message to OpenCV image
-        cv_bridge::CvImagePtr cv_ptr = cv_bridge::toCvCopy(msg, "bgr8");
-        cv::Mat img = cv_ptr->image;
-
-        if (img.empty()) {
-            RCLCPP_ERROR(this->get_logger(), "Received empty image");
-            return;
-        }
-
-        // Log original image dimensions
-        RCLCPP_DEBUG(this->get_logger(), "OpenCV image dimensions: %dx%d", 
-                     img.cols, img.rows);
-
-        cv::Mat resized_img;
-        if (enable_resize_) {
-            // Verify target dimensions are valid
-            if (image_width_ <= 0 || image_height_ <= 0) {
-                RCLCPP_ERROR(this->get_logger(), 
-                            "Invalid resize dimensions: %dx%d", 
-                            image_width_, image_height_);
-                return;
-            }
-
-            // Resize image to specified dimensions
-            cv::resize(img, resized_img, cv::Size(image_width_, image_height_), 
-                      0, 0, cv::INTER_LINEAR);
-            
-            // Verify resize was successful
-            if (resized_img.empty()) {
-                RCLCPP_ERROR(this->get_logger(), "Resize operation failed");
-                return;
-            }
-        } else {
-            resized_img = img;
-        }
-
-        // Verify image before inference
-        if (resized_img.cols == 0 || resized_img.rows == 0) {
-            RCLCPP_ERROR(this->get_logger(), 
-                        "Invalid image dimensions before inference: %dx%d",
-                        resized_img.cols, resized_img.rows);
-            return;
-        }
-
-        // Run inference
+    {
         try {
-            const auto objects = yolo_->detectObjects(resized_img);
-            
-            // Log number of detected objects
-            RCLCPP_DEBUG(this->get_logger(), "Detected %zu objects", objects.size());
+            // Log input image dimensions
+            RCLCPP_DEBUG(this->get_logger(), "Received image with dimensions: %dx%d", 
+                         msg->width, msg->height);
 
-            // Draw the bounding boxes on the image
-            yolo_->drawObjectLabels(resized_img, objects);
+            // Convert ROS Image message to OpenCV image
+            cv_bridge::CvImagePtr cv_ptr = cv_bridge::toCvCopy(msg, "bgr8");
+            cv::Mat img = cv_ptr->image;
 
-            // Convert back to ROS message and publish
-            sensor_msgs::msg::Image::SharedPtr out_msg = 
-                cv_bridge::CvImage(msg->header, "bgr8", resized_img).toImageMsg();
-            publisher_->publish(*out_msg);
+            if (img.empty()) {
+                RCLCPP_ERROR(this->get_logger(), "Received empty image");
+                return;
+            }
 
+            // Log original image dimensions
+            RCLCPP_DEBUG(this->get_logger(), "OpenCV image dimensions: %dx%d", 
+                         img.cols, img.rows);
+
+            cv::Mat resized_img;
+            if (enable_resize_) {
+                // Verify target dimensions are valid
+                if (image_width_ <= 0 || image_height_ <= 0) {
+                    RCLCPP_ERROR(this->get_logger(), 
+                                "Invalid resize dimensions: %dx%d", 
+                                image_width_, image_height_);
+                    return;
+                }
+
+                // Resize image to specified dimensions
+                cv::resize(img, resized_img, cv::Size(image_width_, image_height_), 
+                          0, 0, cv::INTER_LINEAR);
+                
+                // Verify resize was successful
+                if (resized_img.empty()) {
+                    RCLCPP_ERROR(this->get_logger(), "Resize operation failed");
+                    return;
+                }
+            } else {
+                resized_img = img;
+            }
+
+            // Verify image before inference
+            if (resized_img.cols == 0 || resized_img.rows == 0) {
+                RCLCPP_ERROR(this->get_logger(), 
+                            "Invalid image dimensions before inference: %dx%d",
+                            resized_img.cols, resized_img.rows);
+                return;
+            }
+
+            // Run inference
+            try {
+                const auto objects = yolo_->detectObjects(resized_img);
+                
+                // Log number of detected objects
+                RCLCPP_DEBUG(this->get_logger(), "Detected %zu objects", objects.size());
+
+                // Draw the bounding boxes on the image
+                yolo_->drawObjectLabels(resized_img, objects);
+
+                // Convert back to ROS message and publish
+                sensor_msgs::msg::Image::SharedPtr out_msg = 
+                    cv_bridge::CvImage(msg->header, "bgr8", resized_img).toImageMsg();
+                publisher_->publish(*out_msg);
+
+            } catch (const std::exception& e) {
+                RCLCPP_ERROR(this->get_logger(), "Inference error: %s", e.what());
+                return;
+            }
+
+        } catch (const cv_bridge::Exception& e) {
+            RCLCPP_ERROR(this->get_logger(), "cv_bridge exception: %s", e.what());
+        } catch (const std::runtime_error& e) {
+            RCLCPP_ERROR(this->get_logger(), "Runtime error: %s", e.what());
         } catch (const std::exception& e) {
-            RCLCPP_ERROR(this->get_logger(), "Inference error: %s", e.what());
-            return;
+            RCLCPP_ERROR(this->get_logger(), "Exception: %s", e.what());
         }
-
-    } catch (const cv_bridge::Exception& e) {
-        RCLCPP_ERROR(this->get_logger(), "cv_bridge exception: %s", e.what());
-    } catch (const std::runtime_error& e) {
-        RCLCPP_ERROR(this->get_logger(), "Runtime error: %s", e.what());
-    } catch (const std::exception& e) {
-        RCLCPP_ERROR(this->get_logger(), "Exception: %s", e.what());
     }
-}
 
     std::unique_ptr<YoloV8> yolo_;
     rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr publisher_;
