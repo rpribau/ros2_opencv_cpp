@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import Image
@@ -7,8 +6,8 @@ from cv_bridge import CvBridge
 import cv2
 
 class CameraNode(Node):
-    def __init__(self):
-        super().__init__('camera_node')
+    def _init_(self):
+        super()._init_('camera_node')
         
         # Declarar parámetros
         self.declare_parameter('camera_id', 0)  # 0 es generalmente la cámara web integrada
@@ -60,11 +59,9 @@ class CameraNode(Node):
         ret, frame = self.cap.read()
         
         if ret:
-            # Convertir de BGR (OpenCV) a RGB (ROS)
-            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            
-            # Convertir imagen de OpenCV a mensaje de ROS
-            msg = self.bridge.cv2_to_imgmsg(frame_rgb, encoding='rgb8')
+            # Directly use the original BGR frame from OpenCV
+            # No color conversion needed
+            msg = self.bridge.cv2_to_imgmsg(frame, encoding='bgr8')
             msg.header.stamp = self.get_clock().now().to_msg()
             msg.header.frame_id = 'camera_frame'
             
@@ -73,7 +70,7 @@ class CameraNode(Node):
         else:
             self.get_logger().warn('No se pudo leer frame de la cámara')
 
-    def __del__(self):
+    def _del_(self):
         # Liberar la cámara cuando se destruye el nodo
         if hasattr(self, 'cap'):
             self.cap.release()
@@ -91,5 +88,5 @@ def main(args=None):
         camera_node.destroy_node()
         rclpy.shutdown()
 
-if __name__ == '__main__':
+if _name_ == '_main_':
     main()
