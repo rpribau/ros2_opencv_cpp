@@ -7,7 +7,7 @@ endif()
 
 # Set CUDA early so OpenCV can find it
 # Set the version of CUDA to use
-set(CUDA_VERSION "11.8")
+set(CUDA_VERSION "12.6")
 # # Use the correct version of CUDA
 set(CUDA_TOOLKIT_ROOT_DIR "/usr/local/cuda-${CUDA_VERSION}")
 # # Set CMAKE_CUDA_COMPILER to the correct version of nvcc
