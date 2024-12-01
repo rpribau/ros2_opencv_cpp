@@ -2,10 +2,10 @@
 
 **Este repo son meras pruebas que voy haciendo de tiempo en tiempo para el SDV para [@Vanttec](https://github.com/vanttec). El codigo no va ser el mismo que tenia hace uno o dos meses, por lo que si quieres ver versiones anteriores buscalas por los commits.**
 
-**Nota del momento**: Hoy amanecimos pelones.
+**Nota del momento**: frfr on god, que la vision si jala en la Jetson. desafortunadamente no puse atencion a mi clase de Packet Tracer y no se de redes xDDDDDDDD.
 
 <p align="center">
-  <img src="https://i1.sndcdn.com/artworks-lb3oCCJzTzFKeADH-oy18gg-t500x500.jpg" alt="Imagen centrada" width="300"/>
+  <img src="https://preview.redd.it/lsdzxdt28f161.png?auto=webp&s=1aaa635d73c7334b54239fb5dc1a57e0fa2279f7" alt="Imagen centrada" width="600"/>
 </p>
 
 
@@ -13,27 +13,159 @@
 
 Estos son los avances mas grandes que he hecho en los ultimos dos meses, los cuales se conformaron en saber como instalar bien OpenCV con CUDA, instalar TensorRT, tener bien los drivers de NVIDIA porque los que vienen por default en Ubuntu son basura y sobretodo, que funcione la cosa. Podran notar que elimine muchisimos archivos anteriores de mis pruebas, esto debido a que mi logica de como hacer las cosas no funcionaba muy bien en la practica, no compilaba bien las builds usando ```colcon build``` y sobre todo la pelea fue mas con TensorRT.
 
-**Nota para Lalo**:
-No se como diablos lograste instalar el ```.deb``` porque en el repo del usv lo tienes en tu CMake de esta forma:
+## Pasos de instalación de OpenCV (Jetson/Local Machine)
 
-```{cmake}
-set(TensorRT_INCLUDE_DIRS /usr/include/x86_64-linux-gnu)
-set(TensorRT_INCLUDE_DIRS /usr/lib/x86_64-linux-gnu)
+Voy a asumir que ya esta lo siguiente instalado por JetPack:
+
+**Requerimientos**
+- Ubuntu 22.04
+- ROS2 Humble
+- CUDA >= 11.8
+- cuDNN >= 8.6
+- TensorRT >= 8.6
+- gcc = 11.4
+- g++ = 11.4
+
+### Instalar OpenCV
+
+#### Instalar los siguientes CODECS (no vienen por default en la Jetson, quiza en tu lap si vengan)
+
+Camara y Media Support (video) (ffmpeg, gstreamer…)
+```
+sudo apt install libavcodec-dev libavformat-dev libswscale-dev
+sudo apt install libgstreamer-plugins-base1.0-dev libgstreamer1.0-dev
+sudo apt install libgtk-3-dev
 ```
 
-Y al menos a mi cuando intentaba instalarlo usando las guias de NVIDIA no me funcionaba, por lo que tuve que optar por usar la version del TAR file, que """en teoria""" me facilita muchisimo a la hora de especificar las rutas y al final me queda algo asi en mi CMake:
-
-```{cmake}
-if (NOT TensorRT_DIR)
-    set(TensorRT_DIR /home/rob/libs/TensorRT-8.6.1.6/)
-endif()
+Formatos extras (esta es opcional, pero igual pueden ser utiles a futuro)
+```
+sudo apt install libpng-dev libjpeg-dev libopenexr-dev libtiff-dev libwebp-dev
 ```
 
-**Fin de la nota**
+#### Descargar OpenCV y buildear
 
-## ¿Como funciona?
+```
+git clone https://github.com/opencv/opencv.git && git clone https://github.com/opencv/opencv_contrib.git
+```
 
-Como mencione, una gran parte de las cosas elimine por lo que es una gran oportunidad de explicar como funciona todo de manera mas detallada.
+Entra a la carpeta de OpenCV, crea la carpeta build y accede a esta.
+```
+cd opencv && mkdir build && cd build
+```
+
+Busca la capacidad computacional de la Jetson en la siguiente pagina: https://developer.nvidia.com/cuda-gpus. Una vez encontrada, ejecuta el siguiente comando:
+
+```
+cmake \
+-D CMAKE_BUILD_TYPE=RELEASE \
+-D CMAKE_INSTALL_PREFIX=/usr/local \
+-D WITH_CUDA=ON \
+-D WITH_CUDNN=ON \
+-D WITH_CUBLAS=ON \
+-D WITH_TBB=ON \
+-D OPENCV_DNN_CUDA=ON \
+-D OPENCV_ENABLE_NONFREE=ON \
+-D CUDA_ARCH_BIN=6.1 \         <--- Edita este numero por la capacidad de la Jetson.
+-D OPENCV_EXTRA_MODULES_PATH=$HOME/opencv_contrib/modules \
+-D BUILD_EXAMPLES=OFF \
+-D HAVE_opencv_python3=ON \
+..
+```
+
+La terminal deberia de decirte que version de OpenCV estas instalando junto con las especificaciones del CUDA y cuDNN.
+
+```
+...
+-- The CXX compiler identification is GNU 9.4.0
+...
+-- Performing Test......
+-- General configuration for OpenCV 4.10.0-dev ======================
+...
+--   NVIDIA CUDA:                   YES (ver 11.8, CUFFT CUBLAS)
+--     NVIDIA GPU arch:             61
+--     NVIDIA PTX archs:
+-- 
+--   cuDNN:                         YES (ver 8.6.0)...-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/rob/opencv/build
+```
+
+Una vez que aparezca el Generating done, corre el siguiente comando
+
+```
+make -j 2
+```
+
+```-j``` es el numero de nucleos de procesador quieres usar para buildear OpenCV, si lo estas buildeando desde la Jetson, yo sugiero que solo uses 2 nucleos. Entre mas nucleos, mas rapido buildea pero con un precio de que el sistema se crashea y tengas que reiniciar todo. Este proceso puede tardar mas o menos 1 o 2 horas si lo especificas con 2 nucleos.
+
+Una vez termiando de buildear, ejecuta el siguiente comando
+
+```
+sudo make install
+```
+
+Terminado esto solo corre el siguiente comando:
+```
+sudo ldconfig
+```
+
+Y listo! En teoria deberia de estar instalado OpenCV con CUDA. Una forma para verificar es abriendo ```python3``` y correr las siguientes lineas
+
+```
+import cv2
+cv2.cuda.printCudaDeviceInfo(0)
+```
+
+## Configurar proyecto
+
+Antes de clonar el proyecto, crea desde Home la siguientes carpetas.
+
+```
+mkdir ros2_ws/src
+```
+
+**Nota. Es importante que sea ```ros2_ws```, si no la Multisense no funcionara**
+
+Clona el proyecto desde la carpeta source con la siguiente linea:
+
+```
+git clone https://github.com/rpribau/ros2_opencv_cpp .
+```
+
+Dentro de src clona la el siguiente repositorio de ```xacro``` e instala las siguientes dependencias de ROS
+
+```
+git clone -b dashing-devel https://github.com/ros/xacro.git
+sudo apt install ros-humble-xacro ros-humble-tf2-geometry-msgs
+```
+
+Mueve el archivo de ```yolov8n-pose.onnx``` y ```multisense.sh``` a ros2_ws/
+
+Y ya lo que queda es buildear y correr ```multisense.sh``` 
+
+- Terminal 1:
+
+```
+colcon build
+source install/setup.bash
+sudo ./multisense.sh
+ros2 launch multisense_ros multisense_launch.py
+```
+
+- Terminal 2:
+```
+source install/setup.bash
+ros2 run yolov8 ros_segmentation --ros-args -p model_path:=/home/vanttec/ros2_ws/yolov8n-pose.onnx -p camera_topic:=/multisense/left/image_color
+```
+
+- Terminal 3
+```
+rqt
+```
+
+
+
+## ¿Como funciona todo el codigo?
 
 ### Topico 1. camara_publisher
 
@@ -148,31 +280,6 @@ Cargar el ```.engine``` y hacer detecciones
 
 Aqui esta toda la magia, donde corre todo lo que vienen en los dos archivos anteriores. Lo unico que hice fue crear otro publisher ```/yolov8/detected_objects``` donde se manda la imagen a rqt.
 
-## Ejecutar nodos
-
-Abre tres terminales y corre lo siguiente:
-
-Terminal 1:
-
-```
-colcon build
-source install/setup.bash
-ros2 run yolov8 ros_segmentation --ros-args -p model_path:=/home/rob/Downloads/yolov8n-pose.onnx -p camera_topic:=/camera/image_raw
-```
-
-Terminal 2:
-
-```
-source install/setup.bash
-ros2 run camera_publisher camera_node
-```
-
-Terminal 3
-```
-rqt
-```
-
-Y fin. 
 
 
 
