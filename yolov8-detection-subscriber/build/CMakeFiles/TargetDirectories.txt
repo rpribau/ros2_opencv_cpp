@@ -1,0 +1,11 @@
+/home/rob/vanttec/YOLOv8-TensorRT-CPP/build/CMakeFiles/YoloV8_TRT.dir
+/home/rob/vanttec/YOLOv8-TensorRT-CPP/build/CMakeFiles/detect_object_image.dir
+/home/rob/vanttec/YOLOv8-TensorRT-CPP/build/CMakeFiles/benchmark.dir
+/home/rob/vanttec/YOLOv8-TensorRT-CPP/build/CMakeFiles/detect_object_video.dir
+/home/rob/vanttec/YOLOv8-TensorRT-CPP/build/CMakeFiles/detect_object_csi_jetson.dir
+/home/rob/vanttec/YOLOv8-TensorRT-CPP/build/CMakeFiles/edit_cache.dir
+/home/rob/vanttec/YOLOv8-TensorRT-CPP/build/CMakeFiles/rebuild_cache.dir
+/home/rob/vanttec/YOLOv8-TensorRT-CPP/build/libs/tensorrt-cpp-api/CMakeFiles/tensorrt_cpp_api.dir
+/home/rob/vanttec/YOLOv8-TensorRT-CPP/build/libs/tensorrt-cpp-api/CMakeFiles/run_inference_benchmark.dir
+/home/rob/vanttec/YOLOv8-TensorRT-CPP/build/libs/tensorrt-cpp-api/CMakeFiles/edit_cache.dir
+/home/rob/vanttec/YOLOv8-TensorRT-CPP/build/libs/tensorrt-cpp-api/CMakeFiles/rebuild_cache.dir

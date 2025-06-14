@@ -13,14 +13,14 @@ setup(
     ],
     install_requires=['setuptools'],
     zip_safe=True,
-    maintainer='rob',
-    maintainer_email='rob@todo.todo',
-    description='TODO: Package description',
-    license='TODO: License declaration',
+    maintainer='your_name',
+    maintainer_email='your_email@example.com',
+    description='Publica imagenes de la webcam.',
+    license='Apache-2.0',
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'camera_node = camera_publisher.camera_node:main',
+            'webcam_node = camera_publisher.webcam_node:main',
         ],
-    },  
+    },
 )
