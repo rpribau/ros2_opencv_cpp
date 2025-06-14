@@ -2,6 +2,14 @@
 
 **Este repo son meras pruebas que voy haciendo de tiempo en tiempo para el SDV para [@Vanttec](https://github.com/vanttec). El codigo no va ser el mismo que tenia hace uno o dos meses, por lo que si quieres ver versiones anteriores buscalas por los commits.**
 
+TO-DO
+
+[x] Crear el launch file
+[x] Crear test con camara de laptop
+[] Editar el launch file para que inicialice tambien la multisense
+
+
+
 **Nota del momento**: 
 
 light work no reaction...
