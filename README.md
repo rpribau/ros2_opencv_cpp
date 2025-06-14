@@ -4,9 +4,9 @@
 
 TO-DO
 
-[x] Crear el launch file
-[x] Crear test con camara de laptop
-[] Editar el launch file para que inicialice tambien la multisense
+- [x] Crear el launch file
+- [x] Crear test con camara de laptop
+- [ ] Editar el launch file para que inicialice tambien la multisense
 
 
 
