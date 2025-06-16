@@ -61,6 +61,14 @@ def generate_launch_description():
         lc_model_type = LaunchConfiguration('model_type')
         lc_multisense_image_topic = LaunchConfiguration('multisense_image_topic')
 
+        # --- Lógica para determinar model_type ---
+        resolved_model_path = context.perform_substitution(lc_model_path)
+        final_model_type = context.perform_substitution(lc_model_type)
+        
+        if 'pose' in resolved_model_path and final_model_type == 'object':
+            final_model_type = 'pose'
+            actions.append(LogInfo(msg=f"El path del modelo contiene 'pose'. Se forzará model_type='pose'."))
+
         # Obtener valor resuelto de la IP para la lógica de Python (ping)
         resolved_multisense_ip = context.perform_substitution(lc_ip_address) # CORREGIDO AQUÍ
 
@@ -84,6 +92,11 @@ def generate_launch_description():
         
         if use_multisense:
             actions.extend([
+                Node(package='yolov8_tensorrt_cpp',
+                     executable='detection_subscriber',
+                     name='detection_subscriber',
+                     parameters=[{'model_path': lc_model_path, 'model_type': final_model_type}],
+                     remappings=[('image_raw', lc_multisense_image_topic)]),
                 Node(package='multisense_ros',
                      namespace=lc_namespace,
                      executable='ros_driver',
@@ -98,24 +111,19 @@ def generate_launch_description():
                                  PathJoinSubstitution([FindPackagePrefix('xacro'), 'bin', 'xacro ']),
                                  PathJoinSubstitution([get_package_share_directory('multisense_ros'),
                                                        'urdf', lc_sensor, 'standalone.urdf.xacro']),
-                                 " name:=", lc_namespace])}]),
-                Node(package='yolov8_tensorrt_cpp',
-                     executable='detection_subscriber',
-                     name='detection_subscriber',
-                     parameters=[{'model_path': lc_model_path, 'model_type': lc_model_type}],
-                     remappings=[('image_raw', lc_multisense_image_topic)])
+                                 " name:=", lc_namespace])}])
             ])
         else:
             # Este bloque se ejecuta si use_multisense es False (ping falló, error, o comando no encontrado)
             actions.append(LogInfo(msg="Inicializando cámara de laptop como alternativa."))
             actions.extend([
-                Node(package='camera_publisher',
-                     executable='webcam_node',
-                     name='camera_publisher'),
                 Node(package='yolov8_tensorrt_cpp',
                      executable='detection_subscriber',
                      name='detection_subscriber',
-                     parameters=[{'model_path': lc_model_path, 'model_type': lc_model_type}])
+                     parameters=[{'model_path': lc_model_path, 'model_type': final_model_type}]),
+                Node(package='camera_publisher',
+                     executable='webcam_node',
+                     name='camera_publisher')
                      # Por defecto se suscribe a /image_raw que publicará webcam_node
             ])
         return actions

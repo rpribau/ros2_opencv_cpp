@@ -39,6 +39,8 @@ struct YoloV8Config {
     int segH = 160;
     int segW = 160;
     float segmentationThreshold = 0.5f;
+    // A flag to indicate if the model is a pose estimation model
+    bool isPose = false;
     // Pose estimation options
     int numKPS = 17;
     float kpsThreshold = 0.5f;
@@ -108,6 +110,9 @@ private:
 
     // Object classes as strings
     const std::vector<std::string> CLASS_NAMES;
+
+    // A flag to indicate if the model is a pose estimation model
+    const bool m_isPose;
 
     // Pose estimation constant
     const int NUM_KPS;
