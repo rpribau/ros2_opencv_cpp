@@ -33,6 +33,7 @@ public:
         if (modelType == "pose") {
             RCLCPP_INFO(this->get_logger(), "Configurando para modelo de POSE.");
             config.classNames = {"person"}; // Para pose, solo hay una clase.
+            config.isPose = true;
         } else if (modelType == "object") {
             RCLCPP_INFO(this->get_logger(), "Configurando para modelo de DETECCIÓN DE OBJETOS.");
             // No se necesita hacer nada, 'config' ya tiene por defecto las 80 clases de COCO.
@@ -44,7 +45,9 @@ public:
 
         // --- Inicialización del motor de YOLOv8 ---
         try {
+            RCLCPP_INFO(this->get_logger(), "Creando instancia de YoloV8... Esto puede tardar varios minutos la primera vez.");
             yoloV8 = std::make_unique<YoloV8>(onnxModelPath, trtModelPath, config);
+            RCLCPP_INFO(this->get_logger(), "Instancia de YoloV8 creada con éxito.");
         } catch (const std::exception& e) {
             RCLCPP_ERROR(this->get_logger(), "Error al inicializar YOLOv8: %s", e.what());
             rclcpp::shutdown();
@@ -52,8 +55,9 @@ public:
         }
 
         // --- Suscriptor y Publicador ---
+        rclcpp::QoS qos_profile = rclcpp::QoS(rclcpp::KeepLast(10)).best_effort();
         subscription_ = this->create_subscription<sensor_msgs::msg::Image>(
-            "image_raw", 10, std::bind(&DetectionSubscriber::topic_callback, this, std::placeholders::_1));
+            "image_raw", qos_profile, std::bind(&DetectionSubscriber::topic_callback, this, std::placeholders::_1));
         image_publisher_ = this->create_publisher<sensor_msgs::msg::Image>("/detection/image_processed", 10);
 
         RCLCPP_INFO(this->get_logger(), "Nodo de detección listo. Publicando resultados en /detection/image_processed");
@@ -61,16 +65,26 @@ public:
 
 private:
     void topic_callback(const sensor_msgs::msg::Image::SharedPtr msg) {
+        RCLCPP_INFO(this->get_logger(), "Callback recibido. Procesando frame.");
         try {
             cv_bridge::CvImagePtr cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
             cv::Mat img = cv_ptr->image;
-            if (img.empty()) { return; }
+            if (img.empty()) { 
+                RCLCPP_WARN(this->get_logger(), "Frame de imagen vacío recibido.");
+                return; 
+            }
 
+            RCLCPP_INFO(this->get_logger(), "Detectando objetos...");
             const auto objects = yoloV8->detectObjects(img);
+            RCLCPP_INFO(this->get_logger(), "Detectados %zu objetos. Dibujando etiquetas.", objects.size());
+
             yoloV8->drawObjectLabels(img, objects);
+            RCLCPP_INFO(this->get_logger(), "Etiquetas dibujadas. Publicando imagen procesada.");
 
             sensor_msgs::msg::Image::SharedPtr processed_msg = cv_bridge::CvImage(std_msgs::msg::Header(), "bgr8", img).toImageMsg();
+            processed_msg->header = msg->header; // Conservar la cabecera original
             image_publisher_->publish(*processed_msg);
+            RCLCPP_INFO(this->get_logger(), "Imagen procesada publicada.");
 
         } catch (const std::exception& e) {
             RCLCPP_ERROR(this->get_logger(), "Error en el callback: %s", e.what());

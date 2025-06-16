@@ -48,6 +48,10 @@ install(TARGETS
   DESTINATION lib/${PROJECT_NAME}
 )
 
+install(TARGETS YoloV8_TRT tensorrt_cpp_api
+    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib
+)
 
 install(DIRECTORY
   launch
